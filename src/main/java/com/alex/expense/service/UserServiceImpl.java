@@ -1,12 +1,11 @@
 package com.alex.expense.service;
 
-import com.alex.expense.entity.User;
+import com.alex.expense.dto.UserDto;
+import com.alex.expense.entity.UserEntity;
 import com.alex.expense.exception.ItemAlreadyExistsException;
-import com.alex.expense.exception.ResourceNotFoundException;
-import com.alex.expense.model.UserModel;
+import com.alex.expense.mapper.UserDtoMapper;
 import com.alex.expense.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -21,26 +20,28 @@ public class UserServiceImpl implements UserService{
 
     private final UserRepository userRepository;
     private final PasswordEncoder bcryptEncoder;
+    private final UserDtoMapper userDtoMapper;
 
     @Override
-    public User createUser(UserModel user) {
+    public UserDto createUser(UserDto user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new ItemAlreadyExistsException(String.format("User with email %s already exists", user.getEmail()));
         }
-        User newUser = new User();
-        BeanUtils.copyProperties(user, newUser);
+        UserEntity newUser = userDtoMapper.mapToEntity(user);
         newUser.setPassword(bcryptEncoder.encode(newUser.getPassword()));
-        return userRepository.save(newUser);
+        newUser = userRepository.save(newUser);
+        return userDtoMapper.mapToDto(newUser);
     }
 
     @Override
-    public User readUser() {
-        return getLoggedInUser();
+    public UserDto readUser() {
+        UserEntity user = getLoggedInUser();
+        return userDtoMapper.mapToDto(user);
     }
 
     @Override
-    public User updateUser(UserModel user) {
-        User existingUser = readUser();
+    public UserDto updateUser(UserDto user) {
+        UserEntity existingUser = getLoggedInUser();
         existingUser.setName(Objects.requireNonNullElse(user.getName(), existingUser.getName()));
         if (user.getEmail() != null && !user.getEmail().equals(existingUser.getEmail()) &&
                 userRepository.existsByEmail(user.getEmail())) {
@@ -48,20 +49,19 @@ public class UserServiceImpl implements UserService{
         }
         existingUser.setEmail(Objects.requireNonNullElse(user.getEmail(), existingUser.getEmail()));
         existingUser.setPassword(user.getPassword() != null ? bcryptEncoder.encode(user.getPassword()) : existingUser.getPassword());
-        if (user.getAge() != 0) {
-            existingUser.setAge(user.getAge());
-        }
-        return userRepository.save(existingUser);
+        existingUser.setAge(Objects.requireNonNullElse(user.getAge(), existingUser.getAge()));
+        existingUser = userRepository.save(existingUser);
+        return userDtoMapper.mapToDto(existingUser);
     }
 
     @Override
     public void deleteUser() {
-        User user = readUser();
+        UserEntity user = getLoggedInUser();
         userRepository.delete(user);
     }
 
     @Override
-    public User getLoggedInUser() {
+    public UserEntity getLoggedInUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
 

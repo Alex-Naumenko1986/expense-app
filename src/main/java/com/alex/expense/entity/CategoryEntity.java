@@ -13,7 +13,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "tbl_categories")
+@Table(name = "categories")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -22,18 +22,19 @@ public class CategoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(unique = true)
+    @Column(name = "category_id", unique = true)
     private String categoryId;
-    @Column(unique = true)
     private String name;
     private String description;
-    private String categoryIcon;
+    private String icon;
+    @Column(name = "created_at")
     @CreationTimestamp
     private Timestamp createdAt;
+    @Column(name = "updated_at")
     @UpdateTimestamp
     private Timestamp updatedAt;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private User user;
+    private UserEntity user;
 }

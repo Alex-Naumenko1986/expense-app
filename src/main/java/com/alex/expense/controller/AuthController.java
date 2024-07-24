@@ -1,9 +1,12 @@
 package com.alex.expense.controller;
 
+import com.alex.expense.dto.UserDto;
 import com.alex.expense.entity.JwtResponse;
-import com.alex.expense.entity.User;
-import com.alex.expense.model.AuthModel;
-import com.alex.expense.model.UserModel;
+import com.alex.expense.io.AuthRequest;
+import com.alex.expense.io.UserRequest;
+import com.alex.expense.io.UserResponse;
+import com.alex.expense.mapper.UserRequestMapper;
+import com.alex.expense.mapper.UserResponseMapper;
 import com.alex.expense.security.CustomUserDetailsService;
 import com.alex.expense.service.UserService;
 import com.alex.expense.util.JwtTokenUtil;
@@ -15,11 +18,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -34,10 +36,14 @@ public class AuthController {
 
     private final JwtTokenUtil jwtTokenUtil;
 
+    private final UserResponseMapper userResponseMapper;
+
+    private final UserRequestMapper userRequestMapper;
+
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> login(@RequestBody AuthModel authModel) throws Exception {
-       authenticate(authModel.getEmail(), authModel.getPassword());
-       UserDetails userDetails = userDetailsService.loadUserByUsername(authModel.getEmail());
+    public ResponseEntity<JwtResponse> login(@RequestBody @Valid AuthRequest authRequest) throws Exception {
+        authenticate(authRequest.getEmail(), authRequest.getPassword());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getEmail());
        final String token = jwtTokenUtil.generateToken(userDetails);
        return new ResponseEntity<>(new JwtResponse(token), HttpStatus.OK);
     }
@@ -54,7 +60,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> createUser(@Valid @RequestBody UserModel user) {
-        return new ResponseEntity<>(userService.createUser(user), HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserResponse createUser(@Valid @RequestBody UserRequest user) {
+        UserDto createdUser = userService.createUser(userRequestMapper.mapToDto(user));
+        return userResponseMapper.mapToResponse(createdUser);
     }
 }

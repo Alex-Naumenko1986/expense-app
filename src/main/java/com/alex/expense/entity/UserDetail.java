@@ -11,7 +11,7 @@ public class UserDetail implements UserDetails {
 
     private String password;
 
-    public UserDetail(User user) {
+    public UserDetail(UserEntity user) {
         this.userName = user.getEmail();
         this.password = user.getPassword();
     }

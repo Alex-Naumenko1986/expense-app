@@ -1,8 +1,6 @@
 package com.alex.expense.service;
 
 import com.alex.expense.dto.ExpenseDto;
-import com.alex.expense.entity.Expense;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.sql.Date;

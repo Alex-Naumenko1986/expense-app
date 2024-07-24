@@ -15,7 +15,7 @@ public class CategoryDto {
     private String categoryId;
     private String name;
     private String description;
-    private String categoryIcon;
+    private String icon;
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private UserDto user;

@@ -1,11 +1,10 @@
 package com.alex.expense.service;
 
 import com.alex.expense.dto.CategoryDto;
-import com.alex.expense.dto.UserDto;
 import com.alex.expense.entity.CategoryEntity;
-import com.alex.expense.entity.User;
 import com.alex.expense.exception.ItemAlreadyExistsException;
 import com.alex.expense.exception.ResourceNotFoundException;
+import com.alex.expense.mapper.CategoryDtoMapper;
 import com.alex.expense.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,20 +18,24 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService{
     private final CategoryRepository categoryRepository;
     private final UserService userService;
+    private final CategoryDtoMapper categoryDtoMapper;
+
     @Override
     public List<CategoryDto> getAllCategories() {
         List<CategoryEntity> list =  categoryRepository.findByUserId(userService.getLoggedInUser().getId());
-        return list.stream().map(this::mapToDto).collect(Collectors.toList());
+        return list.stream().map(categoryDtoMapper::mapToDto).collect(Collectors.toList());
     }
 
     @Override
     public CategoryDto saveCategory(CategoryDto categoryDto) {
-        CategoryEntity newCategory = mapToEntity(categoryDto);
-        if (categoryRepository.existsByNameAndUserId(newCategory.getName(), userService.getLoggedInUser().getId())) {
+        CategoryEntity newCategory = categoryDtoMapper.mapToEntity(categoryDto);
+        if (categoryRepository.existsByNameIgnoreCaseAndUserId(newCategory.getName(), userService.getLoggedInUser().getId())) {
             throw new ItemAlreadyExistsException(String.format("Category with name %s already exists", newCategory.getName()));
         }
+        newCategory.setUser(userService.getLoggedInUser());
+        newCategory.setCategoryId(UUID.randomUUID().toString());
         newCategory = categoryRepository.save(newCategory);
-        return mapToDto(newCategory);
+        return categoryDtoMapper.mapToDto(newCategory);
     }
 
     @Override
@@ -42,31 +45,5 @@ public class CategoryServiceImpl implements CategoryService{
                 (String.format("Category was not found for id %s", categoryId)));
         categoryRepository.delete(category);
     }
-
-    private CategoryEntity mapToEntity(CategoryDto categoryDto) {
-        return CategoryEntity.builder().
-                name(categoryDto.getName())
-                .description(categoryDto.getDescription())
-                .categoryIcon(categoryDto.getCategoryIcon())
-                .user(userService.getLoggedInUser())
-                .categoryId(UUID.randomUUID().toString()).build();
-    }
-
-    private CategoryDto mapToDto(CategoryEntity categoryEntity) {
-        return CategoryDto.builder().categoryId(categoryEntity.getCategoryId())
-                .name(categoryEntity.getName())
-                .description(categoryEntity.getDescription())
-                .categoryIcon(categoryEntity.getCategoryIcon())
-                .createdAt(categoryEntity.getCreatedAt())
-                .updatedAt(categoryEntity.getUpdatedAt())
-                .user(mapToUserDto(categoryEntity.getUser()))
-                .build();
-    }
-
-    private UserDto mapToUserDto(User user) {
-        return UserDto.builder().
-                email(user.getEmail())
-                .name(user.getName())
-                .build();
-    }
 }
+
